@@ -1,0 +1,6 @@
+# Compilations files
+*.hi
+*.o
+
+# Binaries
+morpho_mt
