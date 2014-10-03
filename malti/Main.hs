@@ -14,5 +14,9 @@ data Maltese = Maltese
 
 instance Language Maltese where
  internDict   _ = malteseDict
- composition  _ = decomposeMt
+ -- composition  _ = decomposeMt
+ composition  _ = Just $ compDesc
  paradigms    _ = foldr insertCommand emptyC commands
+
+-- compDesc :: CompDesc
+compDesc = [[]]

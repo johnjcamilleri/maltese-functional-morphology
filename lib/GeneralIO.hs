@@ -1,213 +1,102 @@
--- Top-level functions:
+----------------------------------------------------------------------
+-- |
+-- Module      : GeneralIO
+-- Maintainer  : Markus Forsberg
+-- Stability   : 
+-- Portability : 
+--
+-- Top-level functions: 
 -- * reading/writing morphology databases
--- * writing Lexicon, Tables, GF, XFST, Latex
+-- * writing Lexicon, Tables, GF, XFST, Latex 
 -- * analysis/synthesis (Trie)
-
+--
+-----------------------------------------------------------------------------
 module GeneralIO where
 
 import Print
-import General
+import Dict.GetDict(getEntry)
+import DictToDictionary
 import Dictionary
-import Trie
-import System.IO
-import Map
+import Command (Comp(..))
+import qualified Data.Set as Set
 import Frontend
-import Data.List (nub)
-import Data.Maybe(fromJust)
-import ErrM
+import Data.List
+import Dict.ErrM
+import Util
+import Compound
+import qualified CTrie
 
 type Stem      = String
 type Id        = String
 
-writeLex :: FilePath -> Dictionary -> IO ()
-writeLex f m = writeFile f $ prFullFormLex $ dict2fullform m
+analysis :: Language a => a -> Comp -> Maybe CompDesc -> ((String,String) -> [(String,String)]) -> String -> [[String]]
+analysis l mc f sandhi s =  post_filter mc $ map (map snd) $ CTrie.decompose f' sandhi s
+  where f' = if mc == None then Just [[One (word_attr l)]] else f
 
-outputLex m = putStrLn $ prFullFormLex $ dict2fullform m
-
-
-writeTables :: FilePath -> Dictionary -> IO ()
-writeTables f m = writeFile f $ prDictionary m
-
-outputTables m =  putStrLn $ prDictionary m
-
-writeGF :: FilePath -> FilePath -> Dictionary -> IO ()
-writeGF f1 f2 m = writeFile f1 $
-		  "-- machine-generated GF file\n\n" ++
-		  "include " ++ f2 ++ " ;\n\n" ++
-		  prGF m
+post_filter :: Ord a => Comp -> [[a]] -> [[a]]
+post_filter Min xs = case sort_length Set.empty xs of
+                              ys@(r:_) -> let n = length r in takeWhile (\s -> length s == n) ys
+                              _         -> []
+post_filter Max xs = case sort_length_rev Set.empty xs of
+                       ys@(r:_) -> let n = length r in takeWhile (\s -> length s == n) ys
+                       _         -> []
+post_filter _           xs = xs -- all, or default
 
 
-outputGF f2 m = putStrLn $
-		"-- machine-generated GF file\n\n" ++
-		"include " ++ f2 ++ " ;\n\n" ++
-		prGF m
 
-writeGFRes :: FilePath -> FilePath -> Dictionary -> IO ()
-writeGFRes f1 f2 m = writeFile f1 $
-		  "-- machine-generated GF file\n\n" ++
-		  "include " ++ f2 ++ " ;\n\n" ++
-		  prGFRes m
+--       post_filter (Length n) xs  = filter (\s -> and (map (fun n) s)) xs
+-- [x | x <- xs, and $ map (fun n) x]
+--       fun n x = case words x of
+--                   (x:_) -> length x >= n
+--                   _     -> False
 
+lookupId :: String -> [String]
+lookupId s = nub $ [identifier xs | xs <-  map snd (CTrie.trie_lookup False s)]
+   where identifier ('\"':'i':'d':'\"':':':'\"':xs) = case span (/='\"') xs of
+                                                        (i,_) -> i
+         identifier (_:xs) = identifier xs
+         identifier []     = []
 
-outputGFRes f2 m = putStrLn $
-		  "-- machine-generated GF file\n\n" ++
-		  "include " ++ f2 ++ " ;\n\n" ++
-		  prGFRes m
+synthesiser :: Language a => a -> IO String
+synthesiser _ =  
+    do s <- getContents
+       return $ unlines $ map f (lines s)
+ where f line =
+        case(lookupId line) of
+	 [] -> "{\"" ++ line ++ "\":\"-Unknown-\"}"
+	 xs -> "{\"" ++ line ++ "\":{\n" ++ (concat  
+              (concat [format x (reverse (map snd (CTrie.trie_lookup False x))) | x <- xs])) ++ "}\n"
+       format :: String -> [String] -> [String]
+       format s xs  =  ("\"" ++ s ++ "\":[\n") : (intersperse ",\n" xs) ++ ["\n]\n"]
 
--- writeGF1 :: FilePath -> FilePath -> Dictionary -> IO ()
--- writeGF1 f1 f2 m = writeFile f1 $
--- 		   "-- machine-generated GF file\n\n" ++
---		   "include " ++ f2 ++ " ;\n\n" ++
---		   prGF1 m
+imode :: Language a => a  -> IO String
+imode l =  do s <- getContents
+              return $ unlines $ map f (lines s)
+  where f s = case getEntry s of
+                Bad _ -> []
+                Ok  e -> 
+                    case parseCommand l emptyParadigmErrors e of
+		      (Right _) -> []
+		      (Left e')  -> unlines  ["[", 
+				             (concat (intersperse ",\n" (lines (prJSON (dictionary [e']))))) ++"\n]"]
 
+tester :: (PositiveTests,NegativeTests) -> [TestInput] -> IO ()
+tester (pos,neg) rs = 
+  do prStd $ "Testbench (" ++ show (length pos) ++ " positive tests, " ++ show (length neg) ++ " negative tests)" 
+     case (tester' pos rs [], tester' neg rs []) of
+       ([],[]) -> prStd " All tests succeeded!\n"
+       (xs,ys) -> do prStd $ (prFailed xs "positive")  ++ "\n" ++ (prFailed ys "negative")
+                     prStd "\n"
+ where
+   prFailed :: [String] -> String -> String
+   prFailed [] s = " All " ++ s ++ " tests succeeded!"
+   prFailed xs s = " "  ++ s ++ " tests failed... \n\n" ++ unlines [n ++ ". " ++ r ++ "\n" | (r,n) <- zip xs (map show ([1..]::[Int]))] 
+   tester' :: [(TestInput -> Maybe String)] -> [TestInput] -> [String] -> [String]
+   tester' _    [] xs = xs
+   tester' test (s:xs) rs' = tester' test xs (test_it test s rs')
+   test_it :: [(TestInput -> Maybe String)] -> TestInput -> [String] -> [String]
+   test_it [] _     rs' = rs'
+   test_it (f:fs) s rs'  = case f s of
+                             Nothing       -> test_it fs s rs'
+                             Just m  -> test_it fs s (m:rs')
 
-writeXML :: FilePath -> Dictionary -> IO ()
-writeXML f m = writeFile f $ prXML m
-
-outputXML m = putStrLn $ prXML m
-
-writeXFST :: FilePath -> Dictionary -> IO ()
-writeXFST f m = writeFile f $
-		"# machine-generated XFST file\n\n" ++
-		prXFST m
-
-outputXFST m = putStrLn $
-	       "# machine-generated XFST file\n\n" ++
-	       prXFST m
-
-writeLEXC :: FilePath -> Dictionary -> IO ()
-writeLEXC f m = writeFile f $
-		"! machine-generated LEXC file\n\n" ++
-		prLEXC m
-
-outputLEXC m = putStrLn $
-	       "! machine-generated LEXC file\n\n" ++
-	       prLEXC m
-
-
-writeLatex :: FilePath -> Dictionary -> IO ()
-writeLatex f m = writeFile f $ "% machine-generated LaTeX file\n" ++
-		 prLatex m
-
-outputLatex m = putStrLn $ "% machine-generated LaTeX file\n" ++
-		prLatex m
-
-
-writeSQL :: FilePath -> Dictionary -> IO ()
-writeSQL f m =  writeFile f $ prSQL m
-
-outputSQL :: Dictionary -> IO ()
-outputSQL m =  putStrLn $ prSQL m
-
-{- this version not needed? AR
-
-update :: Dictionary -> Dictionary -> Dictionary
-update dict d = unionDictionary dict d
-
-
-createDictionary :: FilePath -> IO ()
-createDictionary f = writeDictionary emptyDict f
-
-writeDictionary :: Dictionary -> FilePath -> IO ()
-writeDictionary sm file
- = do h <- openFile file WriteMode
-      hPutStr h $ unlines (map show (unDict sm))
-      hClose h
-
-readDictionary :: FilePath -> IO Dictionary
-readDictionary file = do h <- openFile file ReadMode
- 		         s <- hGetContents h
-                         let ss = lines s
-                         return $ dictionary (map (strings.read) ss)
-
--- readM :: String -> IO Entry
--- readM line = putChar '.' >> return (read line)
-
-updateDictionary :: FilePath -> FilePath -> Dictionary -> IO ()
-updateDictionary f1 f2 m0 = do
-  m <- readDictionary f1
-  writeDictionary (update m0 m) f2
-
--- Use the update_db function to extend your external resource with
--- more words. The update is non-destructive.
--- You should run 'createDictionary db' the first time you use it.
-
-update_db :: Lang -> Dictionary -> IO ()
-update_db l lex = do
-  let dbl = db l
-  m <- readDictionary dbl
-  writeDictionary (update (d2d lex) m) dbl
--}
-
--- tries...
-
-trieDict :: Dictionary -> SATrie
-trieDict d = tcompile [(s, xs) | (s,xs) <- dict2fullform d]
-
--- buildTrie :: Dictionary -> SATrie
--- buildTrie = tcompile . dict2fullform
-
-analysis :: SATrie -> ([Attr] -> Bool) -> String -> [[String]]
-analysis trie f s =  [map snd ys | ys <- decompose trie f s]
-
--- trieLookup
-
-synthesis :: Stem -> Dictionary -> [Entry]
-synthesis s dict = [d | d@(s1,c,xs,t) <- unDict dict, s == s1]
-
-lookupStem :: SATrie -> String -> [(Stem,Int)]
-lookupStem trie s = [(s,read n) | s:n:_ <-  map (words . snd) (snd (tlookup trie s))]
-
-synthesiser :: Language a => a -> Dictionary -> SATrie -> IO()
-synthesiser l dict trie =
-  do
-    synt trie $ [((s1,n),(c,xs,t)) | ((s1,c,xs,t),n) <- zip (unDict dict) [0..]] |->++ Map.empty
- where synt trie table =
-        do hPutStr stdout "> "
-	   hFlush stdout
-	   s <- hGetLine stdin
-           case words s of
-	     ["q"] -> return()
-	     ["c"] -> do putStrLn $ unlines (paradigmNames l)
-			 synt trie table
-	     []  -> synt trie table
-             [w] -> case(lookupStem trie w) of
-	       [] -> do putStrLn $ "Word '" ++ w ++ "' not in the lexicon."
-			synt trie table
-	       xs   -> do putStrLn $ "\n" ++ (prDictionary (dictionary (nub (concat (map (lsynt table) xs)))))
-	   	          synt trie table
-             x:xs -> case (parseCommand l (unwords (x:xs))) of
-			    Bad s -> do putStrLn s
-			                synt trie table
-			    Ok e  -> do putStrLn $ prDictionary $ dictionary [e]
-			                synt trie table
-
-       lsynt table (s,n) = nub [(s,b,c,d) | (b,c,d) <-  fromJust (table ! (s,n))]
-infMode :: Language a => a  -> IO()
-infMode l
-        = do putStr "> "
-	     hFlush stdout
-	     s <- getLine
-	     case (words s) of
-	      ["q"] -> putStrLn "Session ended."
-	      ["c"] -> do putStrLn $ unlines (paradigmNames l)
-			  infMode l
-	      (x:xs) -> do case (parseCommand l (unwords (x:xs))) of
-			    Bad s -> do putStrLn s
-			                infMode l
-			    Ok e  -> do putStrLn $ prDictionary $ dictionary [e]
-			                infMode l
-	      _     -> do putStrLn "Give [command] [dictionary form]"
-			  infMode l
-
-
-imode :: Language a => a  -> IO()
-imode l = interact (concat . map f . lines)
-  where f s =
-	 case (words s) of
-	  (x:xs) -> do case (parseCommand l (unwords (x:xs))) of
-		        Bad s -> s
-		        Ok e  -> unlines
-				 ["[" ++ unwords (x:xs) ++ "]",
-				  prDictionary $ dictionary [e]]
-	  _     -> do "Invalid format. Write: [command] [dictionary form]"

@@ -21,6 +21,8 @@ module RulesMt where
 import General  -- language-independent functional morphology library
 import TypesMt  -- morphological parameters and word classes
 
+test = "Ä‹Ä¡Ä§Å¼"
+
 -- ===========================================================================
 
 -- --2 Substantives
@@ -82,8 +84,8 @@ import TypesMt  -- morphological parameters and word classes
 -- decl1flicka :: String -> Substantive
 -- decl1flicka flicka = decl1 flicka `substCompForm` (tk 1 flicka ++ "e")
 
--- decl1lära :: String -> Substantive
--- decl1lära lära = decl1 lära `substCompForm` (tk 1 lära ++ "o")
+-- decl1lÃ¤ra :: String -> Substantive
+-- decl1lÃ¤ra lÃ¤ra = decl1 lÃ¤ra `substCompForm` (tk 1 lÃ¤ra ++ "o")
 
 
 -- -- The second declension has more variation than the first, but much of it is
@@ -101,7 +103,7 @@ import TypesMt  -- morphological parameters and word classes
 
 -- -- A special rule is needed for words ending with unstressed "el", "en", "er",
 -- -- since we cannot tell from a written word if the "e" is unstressed: e.g.
--- -- in "hushållsel" it isn't.
+-- -- in "hushÃ¥llsel" it isn't.
 
 -- decl2nyckel :: String -> Substantive
 -- decl2nyckel nyckel =
@@ -238,7 +240,7 @@ import TypesMt  -- morphological parameters and word classes
 --                          (ljumma ++ "re") (ljumma ++ "st") (ljumma ++ "ste")
 
 -- -- Some adjectives that end with "t" don't get it doubled in the $Neutr$ form.
--- -- But since e.g. "våt" does, we make this a separate rule (perhaps it depends
+-- -- But since e.g. "vÃ¥t" does, we make this a separate rule (perhaps it depends
 -- -- on whether the second-last letter is a vowel, though).
 
 -- adjAbstrakt abstrakt =
@@ -280,7 +282,7 @@ import TypesMt  -- morphological parameters and word classes
 -- -- Here are some more almost regular patterns.
 -- -- Typically, either the "a"-form or the "t"-form is special.
 -- -- N.B. with $adjFager$, that we cannot tell from the written word if
--- -- the last "e" is stressed ("gálen" vs. "orèn").
+-- -- the last "e" is stressed ("gÃ¡len" vs. "orÃ¨n").
 
 -- adjFager fager = adjAlmostReg fager (fager ++ "t") (dropSecondLast fager ++ "a")
 -- adjGrund grund = adjAlmostReg grund (tk 1 grund ++ "t")  (grund ++ "a")
@@ -304,7 +306,7 @@ import TypesMt  -- morphological parameters and word classes
 --     VF (Pres Conj Pass) -> finne ++ "s"
 --     VF (Pret Ind  Act)  -> fann
 --     VF (Pret Conj Act)  -> funne
---     VF (Pret m    Pass) -> mkV (VF (Pret m Act)) +? "s" --- frös - frös ?
+--     VF (Pret m    Pass) -> mkV (VF (Pret m Act)) +? "s" --- frÃ¶s - frÃ¶s ?
 --     VF Imper            -> redMM finn
 --     VI (Inf Act)        -> finna
 --     VI (Inf Pass)       -> finna ++ "s"
@@ -317,13 +319,13 @@ import TypesMt  -- morphological parameters and word classes
 -- -- two present indicative passive forms.
 
 -- presIndPassE leka lek = [(VF (Pres Ind Pass), strings (leks ++ lekes))] where
---   lekes = [tk 1 leka ++ "es"] -- for glömmes (*glömes)
+--   lekes = [tk 1 leka ++ "es"] -- for glÃ¶mmes (*glÃ¶mes)
 --   leks  = if (dp 1 lek == "s") then [] else [lek ++ "s"]
 
 -- -- Variation in the regular conjugations can mostly be controlled by
 -- -- analysing the endings. This is quite involved in the second
 -- -- conjugation: think about the differences between
--- -- "leka, vända, byta, tyda, läsa, gömma, känna, hyra, tåla".
+-- -- "leka, vÃ¤nda, byta, tyda, lÃ¤sa, gÃ¶mma, kÃ¤nna, hyra, tÃ¥la".
 
 -- verbWeak1 tala =
 --   mkVerb tala (tala ++ "r") (tk 1 tala ++ "e") --- conj. pres. tale?
@@ -340,7 +342,7 @@ import TypesMt  -- morphological parameters and word classes
 --    leke  = stam ++ "e"
 --    lek   = redMM stam
 --    lekd  = let lek = redMMNN stam in case reverse lek of
---              t:v:b | elem t "dt" && not (isVowel v) -> lek   -- sände
+--              t:v:b | elem t "dt" && not (isVowel v) -> lek   -- sÃ¤nde
 --              t:_   | isVoiced t -> lek ++ "d"
 --              _                  -> lek ++ "t"
 --    lekt  = let (dd,el) = span (=='d') (reverse lekd) in
@@ -354,8 +356,8 @@ import TypesMt  -- morphological parameters and word classes
 --          bo (bo ++ "dd")
 
 -- -- Strong and irregular verbs mostly have "er" in the present
--- -- indicative, but other forms exist ("stjäl")
--- -- The past participle may differ from the supine (e.g. "gått" - "gången").
+-- -- indicative, but other forms exist ("stjÃ¤l")
+-- -- The past participle may differ from the supine (e.g. "gÃ¥tt" - "gÃ¥ngen").
 
 -- verbIrreg finna finner fann funnit funnen =
 --   mkVerb finna finner finne
@@ -383,14 +385,14 @@ import TypesMt  -- morphological parameters and word classes
 --   funnit   = f ++ u ++ nn ++ "it"
 
 -- verbStrongGiva  = verbStrongVowel "a" "i"
--- verbStrongFinna = verbStrongVowel "a" "u"  -- bära
--- verbStrongFalla = verbStrongVowel "ö" "a"
+-- verbStrongFinna = verbStrongVowel "a" "u"  -- bÃ¤ra
+-- verbStrongFalla = verbStrongVowel "Ã¶" "a"
 -- verbStrongSmita = verbStrongVowel "e" "i"
--- verbStrongSupa  = verbStrongVowel "ö" "u"  -- flyga
+-- verbStrongSupa  = verbStrongVowel "Ã¶" "u"  -- flyga
 -- verbStrongKomma = verbStrongVowel "o" "o"  -- sova
 -- verbStrongFara  = verbStrongVowel "o" "a"
--- verbStrongLaata = verbStrongVowel "ä" "å"
--- verbStrongAeta  = verbStrongVowel "å" "ä"
+-- verbStrongLaata = verbStrongVowel "Ã¤" "Ã¥"
+-- verbStrongAeta  = verbStrongVowel "Ã¥" "Ã¤"
 
 -- -- Some verbs have free variation between long and short forms:
 -- -- "ge" - "giva", "bli" - "bliva".
@@ -405,7 +407,7 @@ import TypesMt  -- morphological parameters and word classes
 --   ] -- N.B. short Sup form does not apply to bli
 
 -- -- Here are some irregular semi-productive verb patterns
--- -- (the productivity is by prefixes such as "be", "för",...).
+-- -- (the productivity is by prefixes such as "be", "fÃ¶r",...).
 
 -- vGiva s v =
 --   s +* verbShortLong "ge" (verbStrongGiva "giva") v
@@ -417,19 +419,19 @@ import TypesMt  -- morphological parameters and word classes
 --   s +* verbShortLong "dra" (verbStrongFara "draga") v
 
 -- vSe s v =
---   s +* mkVerb "se" "ser" "se" "se" "såg" "såg" "sett" "sedd" v
+--   s +* mkVerb "se" "ser" "se" "se" "sÃ¥g" "sÃ¥g" "sett" "sedd" v
 
 -- vGaa s v =
---   s +* mkVerb "gå" "går" "gå" "gå" "gick" "ginge" "gått" "gången" v
+--   s +* mkVerb "gÃ¥" "gÃ¥r" "gÃ¥" "gÃ¥" "gick" "ginge" "gÃ¥tt" "gÃ¥ngen" v
 
 -- vGoera s v =
---   s +* mkVerb "göra" "gör" "göre" "gör" "gjorde" "gjorde" "gjort" "gjord" v
+--   s +* mkVerb "gÃ¶ra" "gÃ¶r" "gÃ¶re" "gÃ¶r" "gjorde" "gjorde" "gjort" "gjord" v
 
 -- vStaa s v =
---   s +* mkVerb "stå" "står" "stå" "stå" "stod" "stånde" "stått" "stånden" v
+--   s +* mkVerb "stÃ¥" "stÃ¥r" "stÃ¥" "stÃ¥" "stod" "stÃ¥nde" "stÃ¥tt" "stÃ¥nden" v
 
 -- vFaa s v =
---   s +* (mkVerb "få" "får" "få" "få" "fick" "finge" "fått" []
+--   s +* (mkVerb "fÃ¥" "fÃ¥r" "fÃ¥" "fÃ¥" "fick" "finge" "fÃ¥tt" []
 --   `missing` partPretForms) v
 
 -- vHava s v = s +*
@@ -437,7 +439,7 @@ import TypesMt  -- morphological parameters and word classes
 --    `missing` partPretForms) v
 
 -- vVara s v =
---   s +* (mkVerb "vara" "är" "vare" "var" "var" "vore" "varit" []
+--   s +* (mkVerb "vara" "Ã¤r" "vare" "var" "var" "vore" "varit" []
 --   `missing` passiveForms) v
 
 
@@ -538,7 +540,7 @@ import TypesMt  -- morphological parameters and word classes
 
 -- -- What is a vowel or a voiced consonant is language-dependent...
 
--- isVowel c = elem c "aeiouyåäö"
+-- isVowel c = elem c "aeiouyÃ¥Ã¤Ã¶"
 
 -- isVoiced c = elem c "bdglmnrv"
 
@@ -551,14 +553,14 @@ import TypesMt  -- morphological parameters and word classes
 -- doubleLast s = s ++ dp 1 s
 
 -- -- It is typical to reduce stem-final double-"m" to single, if no vowel follows:
--- -- "glömma" - "glöm" - "glömde". (Alternatively, we could say that a single-"m" is
+-- -- "glÃ¶mma" - "glÃ¶m" - "glÃ¶mde". (Alternatively, we could say that a single-"m" is
 -- -- doubled in front of a vowel.)
 
 -- redMM s = case reverse s of
 --   'm':'m':_ -> init s
 --   _ -> s
 
--- -- Sometimes a double-"n" is reduced as well ("känna" - "kände" ; but "känn").
+-- -- Sometimes a double-"n" is reduced as well ("kÃ¤nna" - "kÃ¤nde" ; but "kÃ¤nn").
 
 -- redMMNN s = case reverse s of
 --   n:m:_ | n == m && elem n "nm" -> init s
@@ -588,7 +590,7 @@ import TypesMt  -- morphological parameters and word classes
 -- umlaut man = m ++ mkUm a ++ n where
 --   (m,a,n) = findStemVowel man
 --   mkUm v = case v of
---     "a" -> "ä"
---     "o" -> "ö"
---     "å" -> "ä"
+--     "a" -> "Ã¤"
+--     "o" -> "Ã¶"
+--     "Ã¥" -> "Ã¤"
 --     _   -> v
