@@ -1,9 +1,140 @@
+{-# LANGUAGE ScopedTypeVariables, TypeOperators #-}
+
 module TypesMt where
 
 import General
 import Invariant
 
+-- just for testing
+
+main = putStrLn "TypesMt"
+
+------------------------------------------------------------------------------
+-- Trying to mimic GF syntax
+
+(!) = ($)
+
+type a ==> b = a -> b
+infixr ==>
+
+------------------------------------------------------------------------------
 -- Parameter types for Maltese morphology
+
+data Number = Sg | Pl
+  deriving (Eq, Ord, Show, Read, Enum, Bounded)
+instance Param Number where values = enum
+
+data Gender = Masc | Fem
+  deriving (Eq, Ord, Show, Read, Enum, Bounded)
+instance Param Gender where values = enum
+
+data GenNum =
+    ASg Gender -- DAK, DIK
+  | APl        -- DAWK
+  deriving (Eq, Ord, Show, Read)
+instance Param GenNum where values = map ASg values ++ [APl]
+
+data Person = P1 | P2 | P3
+  deriving (Eq, Ord, Show, Read, Enum, Bounded)
+instance Param Person where values = enum
+
+data Polarity = Pos | Neg
+  deriving (Eq, Ord, Show, Read, Enum, Bounded)
+instance Param Polarity where values = enum
+
+data Vowels = Vowels { v1, v2 :: String }
+  deriving (Eq, Ord, Show, Read)
+mkVowels1 x = Vowels x ""
+mkVowels2 = Vowels
+
+data Root = Root {c1, c2, c3, c4 :: String }
+  deriving (Eq, Ord, Show, Read)
+
+data Verb = Verb {
+    s :: VForm ==> VSuffixForm ==> Polarity ==> Str
+  , i :: VerbInfo
+  }
+
+data VAgr =
+    AgP1 Number
+  | AgP2 Number
+  | AgP3Sg Gender
+  | AgP3Pl
+  deriving (Eq, Ord, Show, Read)
+instance Param VAgr where
+  values = map AgP1 values ++ map AgP2 values ++ map AgP3Sg values ++ [AgP3Pl]
+
+data VForm =
+    VPerf VAgr    -- Perfect tense in all pronoun cases
+  | VImpf VAgr    -- Imperfect tense in all pronoun cases
+  | VImp Number   -- Imperative is always P2, Sg & Pl
+  deriving (Eq, Ord, Show, Read)
+instance Param VForm where
+  values = map VPerf values ++ map VImpf values ++ map VImp values
+
+data VSuffixForm =
+    VSuffixNone  -- ftaħt
+  | VSuffixDir VAgr  -- ftaħtu
+  | VSuffixInd VAgr  -- ftaħtlu
+  | VSuffixDirInd GenNum VAgr  -- ftaħthulu
+  deriving (Eq, Ord, Show, Read)
+instance Param VSuffixForm where
+  values = VSuffixNone : map VSuffixDir values ++ map VSuffixInd values ++ [VSuffixDirInd a b | a<-values, b<-values]
+
+data VerbInfo = VerbInfo {
+    v_class :: VClass
+  , v_form  :: VDerivedForm
+  , v_root  :: Root  -- radicals
+  , v_vseq  :: Vowels  -- vowels extracted from mamma
+  , v_imp   :: String  -- Imperative Sg. gives so much information jaħasra!
+  }
+mkVerbInfo = VerbInfo
+
+data VClass =
+    Strong VStrongClass
+  | Weak VWeakClass
+  | Quad VQuadClass
+  | Loan
+  | Irregular
+  deriving (Eq, Ord, Show, Read)
+instance Param VClass where
+  values = map Strong values ++ map Weak values ++ map Quad values ++ [Loan, Irregular]
+
+data VStrongClass =
+    Regular
+  | LiquidMedial
+  | Geminated
+  deriving (Eq, Ord, Show, Read, Enum, Bounded)
+instance Param VStrongClass where values = enum
+
+data VWeakClass =
+    Assimilative
+  | Hollow
+  | Lacking
+  | Defective
+  deriving (Eq, Ord, Show, Read, Enum, Bounded)
+instance Param VWeakClass where values = enum
+
+data VQuadClass =
+    QStrong
+  | QWeak
+  deriving (Eq, Ord, Show, Read, Enum, Bounded)
+instance Param VQuadClass where values = enum
+
+data VDerivedForm =
+    FormI
+  | FormII
+  | FormIII
+  | FormIV
+  | FormV
+  | FormVI
+  | FormVII
+  | FormVIII
+  | FormIX
+  | FormX
+  | FormUnknown
+  deriving (Eq, Ord, Show, Read, Enum, Bounded)
+instance Param VDerivedForm where values = enum
 
 -- ===========================================================================
 
