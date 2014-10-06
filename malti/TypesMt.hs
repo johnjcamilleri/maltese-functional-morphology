@@ -7,8 +7,6 @@ import Invariant
 
 import qualified Data.String.Utils as DSU
 
-main = putStrLn "TypesMt" -- just for testing
-
 ------------------------------------------------------------------------------
 -- Trying to mimic GF syntax
 
@@ -68,12 +66,13 @@ mkVowels2 = Vowels
 data Root = Root {c1, c2, c3, c4 :: String }
   deriving (Eq, Ord, Show, Read)
 
-data Verb = Verb {
-    s :: VForm ==> VSuffixForm ==> Polarity ==> Str
-  , presPart :: GenNum ==> Str  -- Present/active particible, e.g. RIEQED
-  , pastPart :: GenNum ==> Str  -- Passive/past particible, e.g. MAĦBUB
-  , i :: VerbInfo
-  }
+-- data Verb = Verb {
+--     s :: VForm ==> VSuffixForm ==> Polarity ==> Str
+--   , presPart :: GenNum ==> Str  -- Present/active particible, e.g. RIEQED
+--   , pastPart :: GenNum ==> Str  -- Passive/past particible, e.g. MAĦBUB
+--   , i :: VerbInfo
+--   }
+type Verb = VForm -> Str
 
 data VAgr =
     AgP1 Number
@@ -85,12 +84,19 @@ instance Param VAgr where
   values = map AgP1 values ++ map AgP2 values ++ map AgP3Sg values ++ [AgP3Pl]
 
 data VForm =
-    VPerf VAgr    -- Perfect tense in all pronoun cases
-  | VImpf VAgr    -- Imperfect tense in all pronoun cases
-  | VImp Number   -- Imperative is always P2, Sg & Pl
+    VPerf VAgr  VSuffixForm Polarity   -- Perfect tense in all pronoun cases
+  | VImpf VAgr  VSuffixForm Polarity   -- Imperfect tense in all pronoun cases
+  | VImp Number VSuffixForm Polarity   -- Imperative is always P2, Sg & Pl
+  | VPresPart GenNum   -- Present/active particible, e.g. RIEQED
+  | VPastPart GenNum   -- Passive/past particible, e.g. MAĦBUB
   deriving (Eq, Ord, Show, Read)
 instance Param VForm where
-  values = map VPerf values ++ map VImpf values ++ map VImp values
+  values =
+    [VPerf agr sfx pol | agr<-values, sfx<-values, pol<-values] ++
+    [VImpf agr sfx pol | agr<-values, sfx<-values, pol<-values] ++
+    [VImp  agr sfx pol | agr<-values, sfx<-values, pol<-values] ++
+    [VPresPart gnum | gnum<-values] ++
+    [VPastPart gnum | gnum<-values]
 
 data VSuffixForm =
     VSuffixNone  -- ftaħt
@@ -106,8 +112,9 @@ data VerbInfo = VerbInfo {
   , v_form  :: VDerivedForm
   , v_root  :: Root  -- radicals
   , v_vseq  :: Vowels  -- vowels extracted from mamma
-  , v_imp   :: String  -- Imperative Sg. gives so much information jaħasra!
+  , v_imp   :: String  -- Imperative Sg.
   }
+  deriving (Eq, Ord, Show, Read)
 mkVerbInfo = VerbInfo
 
 data VClass =
@@ -228,33 +235,22 @@ pfx :: String -> String -> String = \p s -> case (p,s) of {
   (px, str) -> px ++ str
   } ;
 
--- -- Add suffix, avoiding blanks and triple letters {GO pg96-7}
--- sfx :: String -> String -> String
--- sfx "" _ = ""
--- sfx kenn n
---   | TODO
+-- Add suffix, avoiding blanks and triple letters {GO pg96-7}
+sfx :: String -> String -> String
+sfx kenn ni
+  | kenn == ""                 = ""
+  | (x' == x'') && (x'' == y1) = dropSfx 1 kenn ++ ni
+  | otherwise                  = kenn ++ ni
+  where
+    x'  = init (takeSfx 2 kenn) -- s[n-1]
+    x'' = takeSfx 1 kenn        -- s[n]
+    y1  = takePfx 1 ni
 
--- sfx : String -> String -> String = \a,b ->
---   case <a,takePfx 1 b> of {
---     <"",_> -> [] ;
---     <ke+"nn","n"> -> ke+"n"+b ;
---     <ha+"kk","k"> -> ha+"k"+b ;
---     <ho+"ll","l"> -> ho+"l"+b ;
---     <si+"tt","t"> -> si+"t"+b ;
---     <be+"xx","x"> -> be+"x"+b ;
---     _ -> a + b
---   } ;
-
--- Replace any IE in the word with an I or E    --- potentially slow
+-- Replace any IE in the word with an I or E
 ie2i :: String -> String = ie2_ "i" ;
 ie2e :: String -> String = ie2_ "e" ;
 ie2_ :: String -> String -> String = \iore serviet ->
   DSU.replace "ie" iore serviet
-  -- case serviet of {
-  --   x + "ie" => x + iore ;
-  --   x + "ie" + y => x + iore + y ;
-  --   x => x
-  -- } ;
 
 -- ===========================================================================
 

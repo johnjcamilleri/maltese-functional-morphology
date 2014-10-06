@@ -1,27 +1,42 @@
---1 Functional Morphology for Swedish
---
--- This is a Haskell module defining the *inflection engine* of Swedish.
--- It is aimed to be complete, in such a way that new Swedish words can be
--- defined by just giving a function name and the dictionary form, e.g.
--- $verbStrongSmita "riva"$ generates the inflection table of the verb
--- "riva".
---
--- Lexicographers should not access this module directly, but through the
--- higher-level fron-end defined in the module $BuildSw.hs$.
--- The purpose of this documentation is to motivate the choices made
--- to linguistically interested users. It is in this module that we
--- have made the linguistic generalizations and abstractions.
---
---2 Heading
---
--- We start with the usual Haskell file heading.
+{-# LANGUAGE ScopedTypeVariables, TypeOperators #-}
 
 module RulesMt where
 
-import General  -- language-independent functional morphology library
-import TypesMt  -- morphological parameters and word classes
+import General
+import TypesMt
 
-test = "ċġħż"
+-- Ensure file encoding: ċġħżĊĠĦŻ
+
+main = putStrLn "RulesMt" -- just for testing
+
+------------------------------------------------------------------------------
+-- Verbs
+
+strongVerb :: Root -> Vowels -> (Number ==> String) -> Verb
+strongVerb root vseq imp =
+  \v -> case v of
+    VPerf agr sfx pol -> (if pol==Pos then id else verbNeg info) $ verbPerfPronSuffixTable info ( conjStrongPerf root vseq ) ! agr ! sfx
+    -- VPerf agr sfx pol -> undefined -- ( conjStrongPerf root vseq ) ! agr
+    VImpf agr sfx pol -> undefined -- ( conjStrongImpf (imp ! Sg) (imp ! Pl) ) ! agr
+    VImp  n   sfx pol -> undefined -- imp ! n
+    VPresPart gnum -> nonExist -- TODO
+    VPastPart gnum -> nonExist -- TODO
+  where
+    info :: VerbInfo = mkVerbInfo (Strong Regular) (FormI) root vseq (imp ! Sg) ;
+
+conjStrongPerf :: Root -> Vowels -> (VAgr ==> Str) = \root p -> undefined
+conjStrongImpf :: Str -> Str -> (VAgr ==> Str) = \imp_sg imp_pl -> undefined
+
+verbPronSuffixTable :: VerbInfo -> (VForm ==> Str) -> (VForm ==> VSuffixForm ==> Str) = \info tbl -> undefined
+
+verbPerfPronSuffixTable :: VerbInfo -> (VAgr ==> Str) -> (VAgr ==> VSuffixForm ==> Str) = \info tbl -> undefined
+verbImpfPronSuffixTable :: VerbInfo -> (VAgr ==> Str) -> (VAgr ==> VSuffixForm ==> Str) = \info tbl -> undefined
+verbImpPronSuffixTable :: VerbInfo -> (Number ==> Str) -> (Number ==> VSuffixForm ==> Str) = \info tbl -> undefined
+verbDirIndSuffixTable :: VAgr -> GenNum -> Str -> (VAgr ==> Str) = \subj dobj ftaht -> undefined
+
+-- verbPolarityTable :: VerbInfo -> (VForm ==> VSuffixForm ==> Str) -> (VForm ==> VSuffixForm ==> Polarity ==> Str) = \info tbl -> undefined
+verbNeg :: VerbInfo -> Str -> Str = \info s -> undefined
+
 
 -- ===========================================================================
 
