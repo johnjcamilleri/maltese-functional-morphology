@@ -5,27 +5,87 @@ module RulesMt where
 import General
 import TypesMt
 
+import qualified Data.String.Utils as DSU
+
 -- Ensure file encoding: ċġħżĊĠĦŻ
 
-main = putStrLn "RulesMt" -- just for testing
+main = do
+  putStrLn "RulesMt" -- just for testing
+  print $ table $ mkVerb2 "kiteb" "k-t-b"
 
 ------------------------------------------------------------------------------
 -- Verbs
 
-strongVerb :: Root -> Vowels -> (Number ==> String) -> Verb
+-- "Smart paradigms"
+-- Not sure where these will go
+mkVerb1 :: Str -> Verb
+mkVerb1 = undefined
+
+mkVerb2 :: String -> String -> Verb -- mkVerb2 "kiteb" "k-t-b"
+mkVerb2 mamma root_s =
+  case classifyRoot root of
+    Strong Regular -> strongVerb root vowels (conjStrongImp root vowels)
+    _ -> error "TODO"
+  where
+    root = mkRoot root_s
+    vowels = extractVowels mamma
+
+mkRoot :: String -> Root
+mkRoot s =
+  let bits = DSU.split "-" s in
+  case bits of
+    c1:c2:c3:[]    -> Root c1 c2 c3 ""
+    c1:c2:c3:c4:[] -> Root c1 c2 c3 c4
+    _ -> error $ "Can't make root from: "++s
+
+------------------------------------------------------------------------------
+
+strongVerb :: Root -> Vowels -> (Number ==> Str) -> Verb
 strongVerb root vseq imp =
   \v -> case v of
-    VPerf agr sfx pol -> (if pol==Pos then id else verbNeg info) $ verbPerfPronSuffixTable info ( conjStrongPerf root vseq ) ! agr ! sfx
+    VPerf agr sfx pol -> applyPol pol $ verbPerfPronSuffixTable info ( conjStrongPerf root vseq ) ! agr ! sfx
     -- VPerf agr sfx pol -> undefined -- ( conjStrongPerf root vseq ) ! agr
-    VImpf agr sfx pol -> undefined -- ( conjStrongImpf (imp ! Sg) (imp ! Pl) ) ! agr
-    VImp  n   sfx pol -> undefined -- imp ! n
+    VImpf agr sfx pol -> applyPol pol $ verbImpfPronSuffixTable info ( conjStrongImpf (imp!Sg) (imp!Pl) ) ! agr ! sfx
+                         --undefined -- ( conjStrongImpf (imp ! Sg) (imp ! Pl) ) ! agr
+    VImp  n   sfx pol -> applyPol pol $ verbImpPronSuffixTable info imp ! n ! sfx
     VPresPart gnum -> nonExist -- TODO
     VPastPart gnum -> nonExist -- TODO
   where
     info :: VerbInfo = mkVerbInfo (Strong Regular) (FormI) root vseq (imp ! Sg) ;
+    applyPol pol = if pol==Pos then id else verbNeg info
 
 conjStrongPerf :: Root -> Vowels -> (VAgr ==> Str) = \root p -> undefined
 conjStrongImpf :: Str -> Str -> (VAgr ==> Str) = \imp_sg imp_pl -> undefined
+conjStrongImp :: Root -> Vowels -> (Number ==> Str) = \root vseq ->
+  let
+    vwls = vowelChangesStrong vseq
+  in
+    \n -> case n of {
+      Sg -> mkStr $ v1 (vwls!Sg) ++ c1 root ++ c2 root ++ v2 (vwls!Sg) ++ c3 root ;  -- Inti:  IKTEB
+      Pl -> mkStr $ v2 (vwls!Pl) ++ c1 root ++ c2 root ++ c3 root ++ "u"  -- Intom: IKTBU
+    } ;
+
+-- Vowel changes for imperative
+vowelChangesStrong :: Vowels -> (Number ==> Vowels) = \vseq ->
+  \n -> case n of {
+    Sg -> case (v1 vseq,v2 vseq) of {
+      ("a","a") -> mkVowels2 "o" "o" ; -- RABAT > ORBOT (but: ILGĦAB, AĦBAT)
+      ("a","e") -> mkVowels2 "a" "e" ; -- GĦAMEL > AGĦMEL
+      ("e","e") -> mkVowels2 "i" "e" ; -- FEHEM > IFHEM
+      ("e","a") -> mkVowels2 "i" "a" ; -- FETAĦ > IFTAĦ (but: ONFOĦ)
+      ("i","e") -> mkVowels2 "i" "e" ; -- KITEB > IKTEB
+      ("o","o") -> mkVowels2 "o" "o"   -- GĦOĠOB > OGĦĠOB
+    } ;
+    Pl -> case (v1 vseq,v2 vseq) of {
+      ("a","a") -> mkVowels1 "o" ; -- RABAT > ORBTU
+      ("a","e") -> mkVowels1 "a" ; -- GĦAMEL > AGĦMLU
+      ("e","e") -> mkVowels1 "i" ; -- FEHEM > IFHMU
+      ("e","a") -> mkVowels1 "i" ; -- FETAĦ > IFTĦU
+      ("i","e") -> mkVowels1 "i" ; -- KITEB > IKTBU
+      ("o","o") -> mkVowels1 "o"   -- GĦOĠOB > OGĦĠBU
+    }
+  } ;
+
 
 verbPronSuffixTable :: VerbInfo -> (VForm ==> Str) -> (VForm ==> VSuffixForm ==> Str) = \info tbl -> undefined
 

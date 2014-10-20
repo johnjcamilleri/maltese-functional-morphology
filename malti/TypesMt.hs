@@ -115,7 +115,9 @@ data VerbInfo = VerbInfo {
   , v_imp   :: String  -- Imperative Sg.
   }
   deriving (Eq, Ord, Show, Read)
-mkVerbInfo = VerbInfo
+-- mkVerbInfo = VerbInfo
+mkVerbInfo :: VClass -> VDerivedForm -> Root -> Vowels -> Str -> VerbInfo
+mkVerbInfo c f r v (Str (s:_)) = VerbInfo c f r v s
 
 data VClass =
     Strong VStrongClass

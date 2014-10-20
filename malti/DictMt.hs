@@ -6,7 +6,9 @@ import General
 import Dictionary
 
 malteseDict :: Dictionary
-malteseDict = dictionary []
+malteseDict = dictionary [
+  vStrong "kiteb" ()
+  ]
 
 -- ===========================================================================
 
