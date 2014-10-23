@@ -159,8 +159,8 @@ matches (p:ps) s =
       | otherwise = find x (tail y)
 
 -- | Check a list of substrings (character classes) occur in order in a string
---   e.g. matches [vowels, vowels]         "hello" = Just ["e","o"]
---        matches [vowels, vowels, vowels] "hello" = Nothing
+--   e.g. matchesClasses [vowels, vowels]         "hello" = Just ["e","o"]
+--        matchesClasses [vowels, vowels, vowels] "hello" = Nothing
 --          where vowels = ["a","e","i","o","u"]
 matchesClasses :: [[String]] -> String -> Maybe [String]
 matchesClasses [] s = Just []
@@ -168,15 +168,11 @@ matchesClasses (p:ps) s =
   case findAny p s of
     Just (c,rest) -> maybe Nothing (\tail -> Just $ c : tail) (matchesClasses ps rest)
     Nothing -> Nothing
-
   where
-    fap = findAny p s
-
     findAny :: [String] -> String -> Maybe (String,String)
     findAny cs s =
       let search = [ (c,fromJust (find c s)) | c <- cs, isJust (find c s) ]
       in if null search then Nothing else Just (fst (head search), snd (head search))
-
     find _ [] = Nothing
     find x y
       | x `isPrefixOf` y = Just (drop (length x) y)
