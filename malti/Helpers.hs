@@ -6,6 +6,7 @@ import General
 import TypesMt
 
 import Data.List (isPrefixOf, isSuffixOf)
+import Data.Maybe (isJust, fromJust)
 import qualified Data.String.Utils as DSU
 
 ------------------------------------------------------------------------------
@@ -143,15 +144,40 @@ endsWith (Str ss) s =  and $ map (isSuffixOf s) ss
 -- endsWith a b = isSuffixOf b a
 
 -- | Check a list of substrings occur in order in a string
+--   e.g. matches ["h","ll"] "hello"  = True
+--        matches ["ll","he"] "hello" = False
 matches :: [String] -> String -> Bool
 matches [] s = True
-matches (p:ps) s = is && matches ps rest
+matches (p:ps) s =
+  case find p s of
+    Just rest -> matches ps rest
+    Nothing -> False
   where
-    (is, rest) = find p s
-    find _ [] = (False,[])
+    find _ [] = Nothing
     find x y
-      | x `isPrefixOf` y = (True, drop (length x) y)
+      | x `isPrefixOf` y = Just (drop (length x) y)
       | otherwise = find x (tail y)
 
--- | Check a list of substrings occur in order in a string
-matchesClasses :: [[String]] -> String -> [String]
+-- | Check a list of substrings (character classes) occur in order in a string
+--   e.g. matches [vowels, vowels]         "hello" = Just ["e","o"]
+--        matches [vowels, vowels, vowels] "hello" = Nothing
+--          where vowels = ["a","e","i","o","u"]
+matchesClasses :: [[String]] -> String -> Maybe [String]
+matchesClasses [] s = Just []
+matchesClasses (p:ps) s =
+  case findAny p s of
+    Just (c,rest) -> maybe Nothing (\tail -> Just $ c : tail) (matchesClasses ps rest)
+    Nothing -> Nothing
+
+  where
+    fap = findAny p s
+
+    findAny :: [String] -> String -> Maybe (String,String)
+    findAny cs s =
+      let search = [ (c,fromJust (find c s)) | c <- cs, isJust (find c s) ]
+      in if null search then Nothing else Just (fst (head search), snd (head search))
+
+    find _ [] = Nothing
+    find x y
+      | x `isPrefixOf` y = Just (drop (length x) y)
+      | otherwise = find x (tail y)

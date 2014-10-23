@@ -6,6 +6,7 @@ module RulesMt where
 
 import General
 import TypesMt
+import Helpers
 
 import qualified Data.String.Utils as DSU
 
