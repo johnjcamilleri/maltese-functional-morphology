@@ -48,9 +48,7 @@ strongVerb :: Root -> Vowels -> (Number ==> Str) -> Verb
 strongVerb root vseq imp =
   \v -> case v of
     VPerf agr sfx pol -> applyPol pol $ verbPerfPronSuffixTable info ( conjStrongPerf root vseq ) ! agr ! sfx
-    -- VPerf agr sfx pol -> undefined -- ( conjStrongPerf root vseq ) ! agr
     VImpf agr sfx pol -> applyPol pol $ verbImpfPronSuffixTable info ( conjStrongImpf (imp!Sg) (imp!Pl) ) ! agr ! sfx
-                         --undefined -- ( conjStrongImpf (imp ! Sg) (imp ! Pl) ) ! agr
     VImp  n   sfx pol -> applyPol pol $ verbImpPronSuffixTable info imp ! n ! sfx
     VPresPart gnum -> nonExist -- TODO
     VPastPart gnum -> nonExist -- TODO
@@ -128,8 +126,6 @@ conjGenericImpf :: Str -> Str -> (VAgr ==> Str) = \imp_sg imp_pl ->
     AgP3Pl     -> pfx_J imp_pl    -- Huma JIŻOLQU
   } ;
 
-verbPronSuffixTable :: VerbInfo -> (VForm ==> Str) -> (VForm ==> VSuffixForm ==> Str) = \info tbl -> undefined
-
 verbPerfPronSuffixTable :: VerbInfo -> (VAgr ==> Str) -> (VAgr ==> VSuffixForm ==> Str) = \info tbl ->
   let
     patt2 = vowelChangesIE (v_root info) (v_vseq info) ;
@@ -140,7 +136,7 @@ verbPerfPronSuffixTable :: VerbInfo -> (VAgr ==> Str) -> (VAgr ==> VSuffixForm =
       let
         ftaht = tbl ! AgP1 Sg ;
       in
-      \vform -> case vform of {
+      \sfxform -> case sfxform of {
         VSuffixNone -> ftaht ;
         VSuffixDir agr ->
           case agr of {
@@ -168,7 +164,7 @@ verbPerfPronSuffixTable :: VerbInfo -> (VAgr ==> Str) -> (VAgr ==> VSuffixForm =
       let
         ftaht = tbl ! AgP2 Sg ;
       in
-      \vform -> case vform of {
+      \sfxform -> case sfxform of {
         VSuffixNone -> ftaht ;
         VSuffixDir agr ->
           case agr of {
@@ -237,7 +233,7 @@ verbPerfPronSuffixTable :: VerbInfo -> (VAgr ==> Str) -> (VAgr ==> VSuffixForm =
         --   _ -> "u" -- Huwa FETĦU
         --   } ;
       in
-      \vform -> case vform of {
+      \sfxform -> case sfxform of {
         VSuffixNone -> tbl ! AgP3Sg Masc ;
         VSuffixDir agr ->
           case agr of {
@@ -294,7 +290,7 @@ verbPerfPronSuffixTable :: VerbInfo -> (VAgr ==> Str) -> (VAgr ==> VSuffixForm =
         --   _ -> fethet -- QRAT, ŻVILUPPAT...
         --   } ;
       in
-      \vform -> case vform of {
+      \sfxform -> case sfxform of {
         VSuffixNone -> tbl ! AgP3Sg Fem ;
         VSuffixDir agr ->
           case agr of {
@@ -323,7 +319,7 @@ verbPerfPronSuffixTable :: VerbInfo -> (VAgr ==> Str) -> (VAgr ==> VSuffixForm =
         ftahna = tbl ! AgP1 Pl ;
         ftahn = mapStr (dropSfx 1) ftahna ;
       in
-      \vform -> case vform of {
+      \sfxform -> case sfxform of {
         VSuffixNone -> ftahna ;
         VSuffixDir agr ->
           case agr of {
@@ -353,7 +349,7 @@ verbPerfPronSuffixTable :: VerbInfo -> (VAgr ==> Str) -> (VAgr ==> VSuffixForm =
       let
         ftahtu = tbl ! AgP2 Pl ;
       in
-      \vform -> case vform of {
+      \sfxform -> case sfxform of {
         VSuffixNone -> ftahtu ;
         VSuffixDir agr ->
           case agr of {
@@ -381,7 +377,7 @@ verbPerfPronSuffixTable :: VerbInfo -> (VAgr ==> Str) -> (VAgr ==> VSuffixForm =
       let
         fethu = ie2_ (v1 patt2) (tbl ! AgP3Pl) ;
       in
-      \vform -> case vform of {
+      \sfxform -> case sfxform of {
         VSuffixNone -> tbl ! AgP3Pl ;
         VSuffixDir agr ->
           case agr of {
@@ -408,8 +404,122 @@ verbPerfPronSuffixTable :: VerbInfo -> (VAgr ==> Str) -> (VAgr ==> VSuffixForm =
 
     } ; -- end of verbPerfPronSuffixTable
 
-verbImpfPronSuffixTable :: VerbInfo -> (VAgr ==> Str) -> (VAgr ==> VSuffixForm ==> Str) = \info tbl -> undefined
-verbImpPronSuffixTable :: VerbInfo -> (Number ==> Str) -> (Number ==> VSuffixForm ==> Str) = \info tbl -> undefined
+-- verbImpfPronSuffixTable :: VerbInfo -> (VAgr ==> Str) -> (VAgr ==> VSuffixForm ==> Str) = \info tbl -> undefined
+verbImpfPronSuffixTable :: VerbInfo -> (VAgr ==> Str) -> (VAgr ==> VSuffixForm ==> Str) = verbPerfPronSuffixTable
+-- verbImpPronSuffixTable :: VerbInfo -> (Number ==> Str) -> (Number ==> VSuffixForm ==> Str) = \info tbl -> undefined
+verbImpPronSuffixTable :: VerbInfo -> (Number ==> Str) -> (Number ==> VSuffixForm ==> Str) = \info tbl ->
+  let
+    -- TODO: rename?
+    patt2 = vowelChangesIE (v_root info) (v_vseq info) ;
+  in
+  \num -> case num of {
+    Sg -> -- Inti IFTAĦ
+      let
+        vowels = extractVowels (tbl ! Sg) ;
+      --   iftah : Str = case (tbl ! Sg) of {
+      --     w+"ie"+g+"e"+b -> w+(patt2.V1)+g+"i"+b ; -- -WIEĠEB > -WIĠIB
+      --     str+"ie"+h@#Cns -> str+(patt2.V1)+h ; -- -STRIEĦ > -STRIĦ --- too general?
+      --     "ie"+qaf-> "i"+qaf ; -- IEQAF > IQAF
+      --     aqta+"'" -> aqta+"għ" ; -- AQTA' > AQTAGĦ
+      --     ik+t@#Consonant+"e"+b@#Consonant -> ik+t+"i"+b ; -- IKTEB > IKTIB --- potentially slow
+      --     x -> x -- IFTAĦ
+      --     } ;
+      --   ifth : Str = case info.form of {
+      --     FormX -> case info.imp of {
+      --       staghg + e@#Vwl + b@#Cns -> staghg + b ; -- STAGĦĠB, STĦARRĠ
+      --       _ -> info.imp -- STQARR
+      --       } ;
+      --     -- FormX -> "st" + info.vseq.V1 + info.root.C1 + info.root.C2 + info.root.C3 ; -- STAGĦĠEB
+      --     _ -> verbImpStem info iftah
+      --     } ;
+        -- p3sg_dir_u :: Str = case info.imp of {
+        --   _ + "a" -> "ah" ; -- KANTAH
+        --   _ + "i" -> "ih" ; -- SERVIH
+        --   _ -> "u" -- IFTĦU
+        --   } ;
+        p3sg_dir_u :: Str
+          | v_imp info `endswith` "a" = "ah" -- KANTAH
+          | v_imp info `endswith` "i" = "ih" -- SERVIH
+          | otherwise                 = "u"  -- IFTĦU
+      in
+      \sfxform -> case sfxform of {
+        VSuffixNone -> (tbl ! Sg) ;
+        VSuffixDir agr ->
+          case agr of {
+            AgP1 Sg    -> sfx iftah "ni" ; -- Inti IFTAĦNI (n.b. KENN+NI)
+            AgP2 Sg    -> nonExist ;
+            AgP3Sg Masc-> ifth + p3sg_dir_u ;  -- Inti IFTĦU
+            AgP3Sg Fem -> iftah + "ha" ;  -- Inti IFTAĦHA
+            AgP1 Pl    -> sfx iftah "na" ; -- Inti IFTAĦNA (n.b. KENN+NA)
+            AgP2 Pl    -> nonExist ;
+            AgP3Pl     -> iftah + "hom"  -- Inti IFTAĦHOM
+          } ;
+        VSuffixInd agr ->
+          let
+            root = v_root info
+            ifthi :: Str = case (v_form info, v_class info) of {
+              (FormIII, _) -> ie2_ (patt2.V1) ifth ++ "i" ; -- ĦARSI-
+              (FormX, _) -> ifth ++ "i" ;
+              (_, Strong LiquidMedial) -> case c1 root of {
+                "għ" -> ifth ++ "i" ; -- AGĦMLI-
+                _ -> (tbl!Sg) ++ "i" -- OĦROĠI-
+                } ;
+              (_, Weak Defective) -> ifth ++ "a" ; -- AQTGĦA-
+              (_, Weak Lacking) -> case vowels.V1 of {
+                "a" -> ifth ++ "a" ;  -- AQRA-
+                _ -> ifth ++ "i" -- IMXI-
+                } ;
+              (_, Quad QStrong) -> case info.form of {
+                FormII -> pfx_T (c1 root) ++ v1 vowels ++ c2 root ++ c3 root ++ c4 root ++ "i" ; -- TĦARBTI-
+                _ -> c1 root ++ v1 vowels ++ c2 root ++ c3 root ++ c4 root ++ "i" -- ĦARBTI-
+                } ;
+              (_, Quad QWeak) -> tbl ! Sg ; -- KANTA-, SERVI-
+              (_, Loan) -> tbl ! Sg ; -- ŻVILUPPA-
+              _ -> ifth ++ "i" -- IFTĦI-
+              } ;
+          in
+          case agr of {
+            AgP1 Sg    -> sfx iftah "li" ; -- Inti IFTAĦLI (n.b. ĦOLL+LI)
+            AgP2 Sg    -> nonExist ;
+            AgP3Sg Masc-> sfx iftah "lu" ;  -- Inti IFTAĦLU (n.b. ĦOLL+LU)
+            AgP3Sg Fem -> ifthi ++ "lha" ;  -- Inti IFTĦILHA
+            AgP1 Pl    -> ifthi ++ "lna" ; -- Inti IFTĦILNA
+            AgP2 Pl    -> nonExist ;
+            AgP3Pl     -> ifthi ++ "lhom"  -- Inti IFTĦILHOM
+          } ;
+        VSuffixDirInd dobj agr -> (verbDirIndSuffixTable (AgP2 Sg) dobj iftah) ! agr
+      } ;
+    Pl -> -- Intom IFTĦU
+      let
+        ifthu = ie2_ (v1 patt2) (tbl ! Pl) ;
+      in
+      \sfxform -> case sfxform of {
+        VSuffixNone -> tbl ! Pl ;
+        VSuffixDir agr ->
+          case agr of {
+            AgP1 Sg    -> ifthu ++ "ni" ; -- Inti IFTĦUNI
+            AgP2 Sg    -> nonExist ;
+            AgP3Sg Masc-> ifthu ++ "h" ;  -- Inti IFTĦUH
+            AgP3Sg Fem -> ifthu ++ "ha" ;  -- Inti IFTĦUHA
+            AgP1 Pl    -> ifthu ++ "na" ; -- Inti IFTĦUNA
+            AgP2 Pl    -> nonExist ;
+            AgP3Pl     -> ifthu ++ "hom"  -- Inti IFTĦUHOM
+          } ;
+        VSuffixInd agr ->
+          case agr of {
+            AgP1 Sg    -> ifthu ++ "li" ; -- Inti IFTĦULI
+            AgP2 Sg    -> nonExist ;
+            AgP3Sg Masc-> ifthu ++ "lu" ;  -- Inti IFTĦULU
+            AgP3Sg Fem -> ifthu ++ "lha" ;  -- Inti IFTĦULHA
+            AgP1 Pl    -> ifthu ++ "lna" ; -- Inti IFTĦULNA
+            AgP2 Pl    -> nonExist ;
+            AgP3Pl     -> ifthu ++ "lhom"  -- Inti IFTĦULHOM
+          } ;
+        VSuffixDirInd dobj agr -> (verbDirIndSuffixTable (AgP2 Pl) dobj ifthu) ! agr
+      }
+  } ; -- end of verbImpPronSuffixTable
+
+
 verbDirIndSuffixTable :: VAgr -> GenNum -> Str -> (VAgr ==> Str) = \subj dobj ftaht ->
   let (++) = (*+) in
   case dobj of {
